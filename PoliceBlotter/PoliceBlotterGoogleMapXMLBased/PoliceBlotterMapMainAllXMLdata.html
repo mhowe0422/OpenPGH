@@ -1,0 +1,116 @@
+<!DOCTYPE html >
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <title>PHP/PostgreSQL & Google Maps All XML Test Data</title>
+    <script type="text/javascript" src="util.js"></script>
+    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script type="text/javascript">
+        //<![CDATA[
+
+        var customIcons = {
+            ARREST: {
+                icon: 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
+            },
+            OFFENSE: {
+                icon: 'http://labs.google.com/ridefinder/images/mm_20_yellow.png'
+            },
+            BOTH: {
+                icon: 'http://labs.google.com/ridefinder/images/mm_20_red.png'
+            }
+        };
+
+        function load() {
+
+            var map = new google.maps.Map(document.getElementById("map"), {
+                center: new google.maps.LatLng(40.435467, -79.996404),
+                zoom: 13,
+                mapTypeId: 'roadmap'
+            });
+            var infoWindow = new google.maps.InfoWindow;
+
+            // Change this depending on the name of your xml file such thursday20140626.xml
+            var currentTime = new Date();
+            var days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+            var dow = days[currentTime.getDay() - 1]; // changing this alters the file name this is set to yesterday
+            var month = currentTime.getMonth() + 1;
+            if (month < 10)
+            {
+                month = "0" + month;
+            }
+            var day = currentTime.getDate() - 1;
+            if (day < 10)
+            {
+                day = "0" + day;
+            }
+            var year = currentTime.getFullYear();
+            var filename = dow + "" + year + "" + month + "" + day + ".xml";
+            filename = "AllIncidents.xml";
+
+            downloadUrl(filename, function(data) {
+
+                var xml = data.responseXML;
+                //alert("XML " + xml);
+                var markers = xml.documentElement.getElementsByTagName("marker");
+                //alert("Markers " + markers);
+                //alert("Marker Length " + markers.length);
+                for (var i = 0; i < markers.length; i++) {
+                    var zone = markers[i].getAttribute("zone");
+
+                    var address = markers[i].getAttribute("address");
+                    var type = markers[i].getAttribute("type");
+                    var incidentdate = markers[i].getAttribute("incidentdate");
+                    var incidentnumber = markers[i].getAttribute("incidentnumber");
+                    var incidenttime = markers[i].getAttribute("incidenttime");
+                    if (incidenttime == null)
+                    {
+                        incidenttime = "N/A";
+                    }
+                    var description = markers[i].getAttribute("description");
+                    var point = new google.maps.LatLng(
+                            parseFloat(markers[i].getAttribute("lat")),
+                            parseFloat(markers[i].getAttribute("lng")));
+                    var html = "<b>" + incidentnumber + "</b> <br/>" + type + "<br/>" + incidentdate + " " + incidenttime + "<br/>" + zone + "<br/>" + address + "<br/>" + description;
+
+                    var icon = customIcons[type] || {};
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: point,
+                        icon: icon.icon
+                    });
+                    bindInfoWindow(marker, map, infoWindow, html);
+                }
+            });
+        }
+
+        function bindInfoWindow(marker, map, infoWindow, html) {
+            google.maps.event.addListener(marker, 'click', function() {
+                infoWindow.setContent(html);
+                infoWindow.open(map, marker);
+            });
+        }
+
+        function downloadUrl(url, callback) {
+            //alert(url);
+            var request = window.ActiveXObject ?
+                    new ActiveXObject('Microsoft.XMLHTTP') : new XMLHttpRequest;
+            request.onreadystatechange = function() {
+                if (request.readyState == 4) {
+                    callback(request);
+                }
+            };
+            request.open('GET', url, true);
+            request.send(null);
+        }
+
+        //]]>
+
+    </script>
+
+</head>
+
+<body onload="load()">
+    <div id="map" style="width: 100%; height: 800px"></div>
+</body>
+
+</html>
